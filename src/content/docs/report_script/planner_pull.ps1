@@ -1,5 +1,5 @@
 # Check for Microsoft.Graph module
-if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {r
+if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
     Write-Host "Microsoft.Graph module is not installed. Please install it by running: Install-Module Microsoft.Graph -Scope CurrentUser -AllowClobber -Force"
     exit
 }
@@ -7,12 +7,27 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {r
 # --- Menu Selection ---
 Write-Host "How would you like to pull the tasks? Select the relevant Option"
 Write-Host "1. Pull all tasks (including unassigned)"
-Write-Host "2. Pull only tasks with assigned users"
-$selection = Read-Host -Prompt "Enter your choice (1 or 2)"
+Write-Host "2. Pull only tasks with assigned users ONLY"
+Write-Host "3. Pull tasks of assigned users based on a date range(great for progress and handover Doc)"
+$selection = Read-Host -Prompt "Enter your choice (1, 2 or 3)"
 
-if ($selection -ne '1' -and $selection -ne '2') {
+if ($selection -ne '1' -and $selection -ne '2' -and $selection -ne '3') {
     Write-Host "Invalid selection. Exiting."
     exit
+}
+
+if ($selection -eq '3') {
+    $startDateStr = Read-Host -Prompt "Enter the start date (YYYY-MM-DD)"
+    $endDateStr = Read-Host -Prompt "Enter the end date (YYYY-MM-DD)"
+
+    try {
+        $startDate = [datetime]::ParseExact($startDateStr, 'yyyy-MM-dd', $null)
+        $endDate = [datetime]::ParseExact($endDateStr, 'yyyy-MM-dd', $null).AddDays(1) # Adds one day to include the entire end day
+    }
+    catch {
+        Write-Host "Invalid date format. Please use YYYY-MM-DD. Exiting."
+        exit
+    }
 }
 
 # Import required sub modules
@@ -121,86 +136,136 @@ try {
 
     foreach ($task in $tasks) {
 
-        # Option 2: Skip tasks with no assignments
-        if ($selection -eq '2' -and -not $task.Assignments) {
-            continue
-        }
-
         $bucketName = $bucketNameLookup[$task.BucketId]
 
         Write-Host "Processing task: $($task.Title)"
 
         # Get task details for attachments and assigned users
         try {
+            if (-not $task.Assignments) {
+                if ($selection -eq '1') {
+                    $taskDetails = Get-MgPlannerTaskDetail -PlannerTaskId $task.Id
+                    $attachments = "No references"
+                    if ($taskDetails.References -and $taskDetails.References.AdditionalProperties) {
+                        $foundUrls = @()
+                        foreach ($key in $taskDetails.References.AdditionalProperties.Keys) {
+                            $url = [System.Net.WebUtility]::UrlDecode($key)
+                            $alias = $taskDetails.References.AdditionalProperties[$key].alias
+
+                            $urlIsGithub = $url -like "*github.com*"
+                            $aliasIsGithub = $alias -like "*github.com*"
+
+                            if ($urlIsGithub -and $aliasIsGithub) {
+                                if ($url -eq $alias) {
+                                    $foundUrls += $url
+                                }
+                                else {
+                                    $foundUrls += "$alias ($url)"
+                                }
+                            }
+                            elseif ($urlIsGithub) {
+                                $foundUrls += $url
+                            }
+                            elseif ($aliasIsGithub) {
+                                $foundUrls += $alias
+                            }
+                        }
+                        if ($foundUrls.Count -gt 0) {
+                            $attachments = $foundUrls -join "; "
+                        }
+                        else {
+                            $attachments = "No GitHub links"
+                        }
+                    }
+
+                    $taskData += [PSCustomObject]@{
+                        Name        = "Unassigned"
+                        Role        = ""
+                        Task        = $task.Title
+                        Bucket      = $bucketNameLookup[$task.BucketId]
+                        Attachments = $attachments
+                    }
+                }
+                continue
+            }
+
             $taskDetails = Get-MgPlannerTaskDetail -PlannerTaskId $task.Id
 
             # Check for GitHub references
+            $attachments = "No references"
             if ($taskDetails.References -and $taskDetails.References.AdditionalProperties) {
-                $githubUrls = $taskDetails.References.AdditionalProperties.Values |
-                    Where-Object { $_.alias -like "*github.com*" } |
-                    ForEach-Object { $_.alias }
+                $foundUrls = @()
+                foreach ($key in $taskDetails.References.AdditionalProperties.Keys) {
+                    $url = [System.Net.WebUtility]::UrlDecode($key)
+                    $alias = $taskDetails.References.AdditionalProperties[$key].alias
 
-                $attachments = if ($githubUrls) { $githubUrls -join "; " } else { "No GitHub links" }
-            } else {
+                    $urlIsGithub = $url -like "*github.com*"
+                    $aliasIsGithub = $alias -like "*github.com*"
+
+                    if ($urlIsGithub -and $aliasIsGithub) {
+                        if ($url -eq $alias) {
+                            $foundUrls += $url
+                        }
+                        else {
+                            $foundUrls += "$alias ($url)"
+                        }
+                    }
+                    elseif ($urlIsGithub) {
+                        $foundUrls += $url
+                    }
+                    elseif ($aliasIsGithub) {
+                        $foundUrls += $alias
+                    }
+                }
+                if ($foundUrls.Count -gt 0) {
+                    $attachments = $foundUrls -join "; "
+                }
+                else {
+                    $attachments = "No GitHub links"
+                }
+            }
+            else {
                 Write-Host "No references found in task details"
-                $attachments = "No references"
             }
 
             # Get assigned users
-            if ($task.Assignments) {
-                $assignmentKeys = $task.Assignments.AdditionalProperties.Keys
-                $assignments = $task.Assignments.AdditionalProperties
+            $assignmentKeys = $task.Assignments.AdditionalProperties.Keys
+            $assignments = $task.Assignments.AdditionalProperties
 
-                if ($assignmentKeys.Count -gt 0) {
-                    # Sort keys by assignedDateTime
-                    $sortedKeys = $assignmentKeys | Sort-Object { [datetime]$assignments[$_].assignedDateTime }
+            if ($assignmentKeys.Count -gt 0) {
+                # Sort keys by assignedDateTime
+                $sortedKeys = $assignmentKeys | Sort-Object { [datetime]$assignments[$_].assignedDateTime }
 
-                    $mainContributorKey = $sortedKeys[0]
-                    $reviewerKey = if ($sortedKeys.Count -gt 1) { $sortedKeys[-1] } else { $null }
+                $mainContributorKey = $sortedKeys[0]
+                $reviewerKey = if ($sortedKeys.Count -gt 1) { $sortedKeys[-1] } else { $null }
 
-                    foreach ($userId in $assignmentKeys) {
-                        $role = if ($userId -eq $mainContributorKey) { "Main Contributor" } elseif ($userId -eq $reviewerKey) { "Reviewer" } else { "" }
+                foreach ($userId in $assignmentKeys) {
+                    $assignment = $assignments[$userId]
+                    $assignedDateTime = [datetime]$assignment.assignedDateTime
 
-                        try {
-                            $user = Get-MgUser -UserId $userId -ErrorAction Stop
-                            $userName = $user.DisplayName
-                        }
-                        catch {
-                            Write-Host "Error getting user details: $_"
-                            $userName = "$userId (Unable to get name)"
-                        }
-
-                        # Add task to collection with individual user
-                        $taskData += [PSCustomObject]@{
-                            Name        = $userName
-                            Role        = $role
-                            Task        = $task.Title
-                            Bucket      = $bucketName
-                            Attachments = $attachments
-                        }
+                    if ($selection -eq '3' -and ($assignedDateTime -lt $startDate -or $assignedDateTime -ge $endDate)) {
+                        continue
                     }
-                }
-                else {
-                    # This block will likely not be hit if $task.Assignments exists, but is good for safety
-                    if ($selection -eq '1') {
-                        $taskData += [PSCustomObject]@{
-                            Name        = "Unassigned"
-                            Role        = ""
-                            Task        = $task.Title
-                            Bucket      = $bucketName
-                            Attachments = $attachments
-                        }
+
+                    $role = if ($userId -eq $mainContributorKey) { "Main Contributor" } elseif ($userId -eq $reviewerKey) { "Reviewer" } else { "" }
+
+                    try {
+                        $user = Get-MgUser -UserId $userId -ErrorAction Stop
+                        $userName = $user.DisplayName
                     }
-                }
-            }
-            elseif ($selection -eq '1') {
-                # No assignments data, and user wants all tasks
-                $taskData += [PSCustomObject]@{
-                    Name        = "Unassigned"
-                    Role        = ""
-                    Task        = $task.Title
-                    Bucket      = $bucketName
-                    Attachments = $attachments
+                    catch {
+                        Write-Host "Error getting user details: $_"
+                        $userName = "$userId (Unable to get name)"
+                    }
+
+                    # Add task to collection with individual user
+                    $taskData += [PSCustomObject]@{
+                        Name        = $userName
+                        Role        = $role
+                        Task        = $task.Title
+                        Bucket      = $bucketName
+                        Attachments = $attachments
+                    }
                 }
             }
         }
@@ -239,6 +304,6 @@ catch {
     Write-Error "Failed to fetch tasks. Error: $_"
 }
 
-Write-Host "Script made by Ibitope Fatoki"
+Write-Host "Script made by Ibitope Fatoki. Github ibi420"
 Write-Host "Script completed."
 Read-Host "Press Enter to exit"
