@@ -50,8 +50,6 @@ For a visual guide on how to find the Plan ID, please watch this video (Covers T
 
 ## How to Run the Script
 
-[Script Demo](https://deakin365-my.sharepoint.com/:v:/g/personal/s223739207_deakin_edu_au/ETM6TddvX_9KhSbykjwiinMBgSIsZp8inzyoABN32SEFMg?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=7QDevO)
-
 1.  Open a **PowerShell 7** terminal (`pwsh.exe`).
 2.  Navigate to the directory where the script is located.
 3.  Execute the script by running: `.\Planner_pull.ps1`
