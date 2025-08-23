@@ -1,19 +1,32 @@
-# Planner Task Puller Script
+# Planner Task Puller Script Documentation
 
 ## Overview
 
-This PowerShell script connects to Microsoft Graph to retrieve tasks from a specified Microsoft Planner plan. It allows the user to pull all tasks, only those assigned to users, or tasks assigned to users within a specific date range. The script can store connection details for multiple plans in a `config.txt` file, allowing for easy switching between them. The script fetches task details, including bucket names, attachments (specifically looking for GitHub links), and assigned users with their roles (Main Contributor, Reviewer). The collected data is then exported to a user-specified CSV file.
+This PowerShell script connects to Microsoft Graph to retrieve tasks from a specified Microsoft Planner plan. It is a flexible, menu-driven tool that allows for powerful filtering and multiple export formats.
+
+The script can store connection details for multiple plans in a `config.json` file, allowing for easy switching between them. It fetches task details, including bucket names, completion status, attachments (specifically looking for GitHub links), and assigned users with their roles (Main Contributor, Reviewer). The collected data can then be exported to a **CSV**, **JSON**, or **Markdown** file.
+
+For CSV and Markdown exports, the script allows you to interactively select which data columns to include, making it ideal for generating custom reports.
+
+## Key Features
+
+*   **Multiple Filtering Options:** Pull tasks by assignment, date range, completion status, or specific bucket.
+*   **Multiple Export Formats:** Export your data to CSV, JSON, or a report-ready Markdown table.
+*   **Customizable Columns:** For CSV and Markdown exports, you can choose exactly which columns to include.
+*   **Plan Management:** An interactive utility to add, delete, and view your saved Planner plans.
+*   **Robust Logging:** Creates a detailed log file in the `\logs` directory, with a configurable log level for easier debugging.
+*   **Environment Checks:** Automatically checks for the required PowerShell version (7+) and `Microsoft.Graph` module to prevent errors.
 
 ## Prerequisites
 
-*   Windows operating system with PowerShell 7. You can grap powershell online at [Microsoft Page](https://learn.microsoft.com/en-gb/powershell/scripting/install/installing-powershell?view=powershell-7.5) or [Github Link](https://github.com/PowerShell/PowerShell?tab=readme-ov-file).
+*   **PowerShell 7 or higher.** The script will not run on older versions like Windows PowerShell 5.1. You can get PowerShell 7 from the [Microsoft Page](https://learn.microsoft.com/en-gb/powershell/scripting/install/installing-powershell?view=powershell-7.5) or [GitHub](https://github.com/PowerShell/PowerShell).
 *   An internet connection.
 *   A Microsoft 365 account with access to Microsoft Planner.
 *   The `Microsoft.Graph` PowerShell module.
 
 ## Setup
 
-Before running the script for the first time, you need to install the `Microsoft.Graph` module. Open a PowerShell terminal and run the following command:
+Before running the script for the first time, you need to install the `Microsoft.Graph` module. Open a PowerShell 7 terminal and run the following command:
 
 ```powershell
 Install-Module Microsoft.Graph -Scope CurrentUser -AllowClobber -Force
@@ -26,8 +39,8 @@ The Plan ID is required to fetch tasks from a specific plan. You can find the Pl
 1.  Go to [Microsoft Planner](https://tasks.office.com/).
 2.  Open the plan you want to use.
 3.  Look at the URL in your browser's address bar. It will look something like this:
-    `https://planner.cloud.microsoft/webui/plan/PLANNER_ID/view/board?tid=BOARDID`
-4.  The `planId` is the alphanumeric string that follows `plan/`. Copy this value when the script prompts for it.
+    `https://tasks.office.com/your-tenant.com/en-US/Home/Plan?planId=YOUR_PLAN_ID&ownerId=...`
+4.  The `planId` is the alphanumeric string that follows `planId=`. Copy this value.
 
 ### Video Tutorial
 
@@ -39,59 +52,64 @@ For a visual guide on how to find the Plan ID, please watch this video (Covers T
 
 [Script Demo](https://deakin365-my.sharepoint.com/:v:/g/personal/s223739207_deakin_edu_au/ETM6TddvX_9KhSbykjwiinMBgSIsZp8inzyoABN32SEFMg?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=7QDevO)
 
-1.  Open a PowerShell terminal.
+1.  Open a **PowerShell 7** terminal (`pwsh.exe`).
 2.  Navigate to the directory where the script is located.
-3.  Execute the script by running: `.\planner_pull.ps1`
-4.  Follow the on-screen prompts:
-    *   **Choose an option:** Select whether to pull all tasks, only assigned ones, or assigned tasks within a date range.
-    *   **Enter Date Range (if applicable):** If you choose to filter by date, you will be prompted to enter a start and end date in `YYYY-MM-DD` format.
-    *   **Authenticate:** The script uses a device code flow for authentication. You will be prompted to open a URL in a web browser and enter a code to sign in to your Microsoft account. This is required before you can select a plan.
-    *   **Choose a Plan:**
-        *   If you have saved plans in `config.txt`, you will see a numbered list of them. Enter the number to select a plan.
-        *   To add a new plan, choose the "Enter a new Plan ID" option (N).
-    *   **Enter New Plan Details (if applicable):**
-        *   Enter the new Plan ID.
-        *   Enter a descriptive name for the plan. This name is for your reference and will be shown in the selection menu in the future.
-    *   **Enter CSV Filename:** Provide a name for the output CSV file.
+3.  Execute the script by running: `.\Planner_pull.ps1`
+4.  Follow the on-screen prompts.
+
+### Main Menu
+
+The script presents a main menu with the following options:
+
+*   **1-5 (Data Pulling Options):** Choose how you want to filter the tasks you retrieve.
+    *   1. Pull all tasks (including unassigned)
+    *   2. Pull only tasks with assigned users
+    *   3. Pull tasks of assigned users based on a date range
+    *   4. Pull tasks from a specific bucket
+    *   5. Pull tasks by completion status (Not Started, In Progress, Completed)
+*   **6. Manage saved plans:** Enter a utility menu to add or delete plans from your `config.json` file.
+*   **Q. Quit:** Exit the script.
+
+### Data Export Workflow
+
+After you select a data pulling option (1-5) and retrieve the tasks:
+
+1.  **Data Preview:** A preview of the data is shown in the console.
+2.  **Choose Export Format:** You will be prompted to choose an export format: **CSV**, **JSON**, or **Markdown**.
+3.  **Select Columns (for CSV/Markdown):** If you choose CSV or Markdown, a menu will appear listing all available data columns. You can then enter the numbers of the columns you wish to keep in your report (e.g., `1,3,5`).
+4.  **Enter Filename:** Provide a name for the output file.
 
 ## How it Works
 
-1.  **Module Check:** The script first checks if the `Microsoft.Graph` module is installed.
-2.  **User Selection:** It prompts the user to choose between pulling all tasks, only assigned tasks, or assigned tasks within a date range.
-3.  **Date Range Input:** If the user chooses to filter by date, the script prompts for a start and end date.
-4.  **Authentication:** It connects to the Microsoft Graph API using a device code authentication flow. This is done early to ensure the script has the necessary permissions for subsequent steps. The script uses a minimal set of permissions required to read tasks and user profiles.
-5.  **Plan ID Configuration:**
-    *   The script reads the `config.txt` file to find any saved plans.
+1.  **Pre-flight Checks:** The script first checks for two things:
+    *   That it is being run in **PowerShell 7 or higher**.
+    *   That the `Microsoft.Graph` module is installed.
+2.  **User Selection:** It prompts the user to choose a filtering method from the main menu.
+3.  **Authentication:** It connects to the Microsoft Graph API using a device code authentication flow.
+4.  **Plan ID Configuration (`config.json`):**
+    *   The script reads the `config.json` file to find any saved plans. This file is created automatically.
     *   If saved plans are found, it displays them in a menu for the user to select.
-    *   If the user opts to add a new plan, the script prompts for the new Plan ID and a descriptive name.
-    *   The new plan entry is appended to `config.txt` in the format `<planid> - <plan name>`. This preserves existing entries.
-6.  **Data Retrieval:**
-    *   It fetches all tasks for the selected Plan ID using `Get-MgPlannerPlanTask`.
-    *   It fetches all buckets in the plan using `Get-MgPlannerPlanBucket` to create a lookup map of bucket IDs to bucket names.
-    *   For each task, it retrieves detailed information using `Get-MgPlannerTaskDetail`.
-    *   It retrieves user information for assigned users using `Get-MgUser`.
-7.  **Data Processing:**
-    *   **Date Filtering:** If a date range is provided, the script filters out tasks that were not assigned within that range.
-    *   **Bucket Name:** It matches the task's `bucketId` to the previously fetched list of buckets to get the bucket name.
-    *   **Attachments:** It intelligently scans task references for GitHub links. It checks both the underlying URL and the display text (alias) for each reference.
-    *   If a GitHub link is found in the URL, its display text is checked. If the display text is also a distinct GitHub link, both are preserved for context. Otherwise, only the clean URL is used.
-    *   If a GitHub link is found only in the display text, the entire display text is captured.
-    This ensures that links are found even if entered incorrectly by users.
-    *   **User Roles:** It determines user roles ("Main Contributor" or "Reviewer") based on the order of assignment. The first assigned user is considered the Main Contributor, and the last is the Reviewer.
-8.  **Output:**
-    *   The script prompts the user for a desired output CSV filename.
-    *   It compiles all the processed data.
-    *   It displays a preview of the data in the console.
-    *   It exports the final data to the specified CSV file.
+    *   The **Manage saved plans** option provides a dedicated utility for adding and deleting plans from this file.
+5.  **Data Retrieval & Processing:**
+    *   It fetches tasks, buckets, and user details from the Graph API based on the user's filter selections.
+    *   **Attachments:** It intelligently scans task references for GitHub links.
+    *   **User Roles:** It determines user roles ("Main Contributor" or "Reviewer") based on the order of assignment.
+6.  **Output:**
+    *   The script prompts the user for an export format and an output filename.
+    *   For CSV and Markdown, it allows the user to select specific columns.
+    *   It compiles all the processed data and exports it to the specified file.
+7.  **Logging:** All operations, user choices, and errors are logged to a file in the `.\logs` directory for easy debugging.
 
-## Output CSV Columns
+## Output Columns
+
+The following data columns are available for export:
 
 *   **Name:** The display name of the user assigned to the task.
 *   **Role:** The role of the user for that task (Main Contributor, Reviewer, or blank).
 *   **Task:** The title of the Planner task.
 *   **Bucket:** The name of the bucket the task belongs to.
-*   **Attachments:** A semicolon-separated list of GitHub URLs found in the task's references. If a reference has a descriptive name that is also a distinct GitHub link, it will be formatted as `DisplayText (URL)`. Otherwise, only the clean URL is shown. This column may also contain a message indicating if no GitHub links were found.
+*   **Attachments:** A semicolon-separated list of GitHub URLs found in the task's references.
+*   **Status:** The completion status of the task (Not Started, In Progress, or Completed).
 
 **Date of Creation:** 22/08/2025
 **Author:** Ibitope Fatoki
-

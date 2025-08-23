@@ -1,0 +1,57 @@
+2025-08-23 18:43:37 [INFO] Script started.
+2025-08-23 18:43:43 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:43:43 [INFO] Entering plan management utility.
+2025-08-23 18:43:45 [INFO] User selected management option: 'a'
+2025-08-23 18:43:51 [WARN] User tried to add a plan with empty ID or name.
+2025-08-23 18:44:15 [INFO] User selected management option: 'q'
+2025-08-23 18:44:15 [INFO] Exiting plan management utility.
+2025-08-23 18:44:18 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:44:21 [INFO] User plan selection: '2'
+2025-08-23 18:44:21 [INFO] Using Plan ID: mIelcQoIgkqhbM8WaPS3sMgAEmyV
+2025-08-23 18:44:48 [INFO] Date filter selected. Start: 07/01/2025 00:00:00, End: 08/24/2025 00:00:00
+2025-08-23 18:44:48 [INFO] Starting Get-PlannerTasks for Plan ID 'mIelcQoIgkqhbM8WaPS3sMgAEmyV'. Selection: 3, BucketId: , Status: 
+2025-08-23 18:44:49 [INFO] Fetched 120 total tasks from plan.
+2025-08-23 18:45:20 [INFO] Finished processing tasks. Returning 120 records.
+2025-08-23 18:45:24 [INFO] User chose export format: 1
+2025-08-23 18:45:34 [INFO] Exporting to CSV at 'test.csv'
+2025-08-23 18:46:35 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:46:39 [INFO] User plan selection: '2'
+2025-08-23 18:46:39 [INFO] Using Plan ID: mIelcQoIgkqhbM8WaPS3sMgAEmyV
+2025-08-23 18:47:06 [INFO] Date filter selected. Start: 07/01/2025 00:00:00, End: 08/24/2025 00:00:00
+2025-08-23 18:47:06 [INFO] Starting Get-PlannerTasks for Plan ID 'mIelcQoIgkqhbM8WaPS3sMgAEmyV'. Selection: 3, BucketId: , Status: 
+2025-08-23 18:47:06 [INFO] Fetched 120 total tasks from plan.
+2025-08-23 18:47:39 [INFO] Finished processing tasks. Returning 120 records.
+2025-08-23 18:47:43 [INFO] User chose export format: 2
+2025-08-23 18:47:46 [INFO] Exporting to JSON at 'test2.json'
+2025-08-23 18:48:10 [INFO] Script finished.
+2025-08-23 18:50:43 [INFO] Script started.
+2025-08-23 18:50:46 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:50:49 [INFO] User plan selection: '2'
+2025-08-23 18:50:49 [INFO] Using Plan ID: mIelcQoIgkqhbM8WaPS3sMgAEmyV
+2025-08-23 18:51:11 [INFO] Date filter selected. Start: 07/01/2025 00:00:00, End: 08/02/2025 00:00:00
+2025-08-23 18:51:11 [INFO] Starting Get-PlannerTasks for Plan ID 'mIelcQoIgkqhbM8WaPS3sMgAEmyV'. Selection: 3, BucketId: , Status: 
+2025-08-23 18:51:12 [INFO] Fetched 120 total tasks from plan.
+2025-08-23 18:51:40 [INFO] Finished processing tasks. Returning 44 records.
+2025-08-23 18:51:51 [INFO] User chose export format: 3
+2025-08-23 18:52:14 [INFO] User column selection: '1,2,3,5'
+2025-08-23 18:52:20 [INFO] Exporting to Markdown at 'test123.md' with columns: Name, Role, Task, Attachments
+2025-08-23 18:52:50 [INFO] Script finished.
+2025-08-23 18:56:54 [INFO] Script started.
+2025-08-23 18:57:11 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:57:14 [INFO] User plan selection: '1'
+2025-08-23 18:57:14 [INFO] Using Plan ID: njykIFLDn0iAY1at7tACfcgADgBS
+2025-08-23 18:57:42 [INFO] Date filter selected. Start: 07/01/2025 00:00:00, End: 08/24/2025 00:00:00
+2025-08-23 18:57:42 [INFO] Starting Get-PlannerTasks for Plan ID 'njykIFLDn0iAY1at7tACfcgADgBS'. Selection: 3, BucketId: , Status: 
+2025-08-23 18:57:43 [INFO] Fetched 400 total tasks from plan.
+2025-08-23 18:57:58 [INFO] Script started.
+2025-08-23 18:58:02 [INFO] Already authenticated as s223739207@deakin.edu.au
+2025-08-23 18:58:04 [INFO] User plan selection: '2'
+2025-08-23 18:58:04 [INFO] Using Plan ID: mIelcQoIgkqhbM8WaPS3sMgAEmyV
+2025-08-23 18:58:19 [INFO] Date filter selected. Start: 07/01/2025 00:00:00, End: 08/23/2025 00:00:00
+2025-08-23 18:58:19 [INFO] Starting Get-PlannerTasks for Plan ID 'mIelcQoIgkqhbM8WaPS3sMgAEmyV'. Selection: 3, BucketId: , Status: 
+2025-08-23 18:58:20 [INFO] Fetched 120 total tasks from plan.
+2025-08-23 18:58:55 [INFO] Finished processing tasks. Returning 119 records.
+2025-08-23 18:58:59 [INFO] User chose export format: 1
+2025-08-23 18:59:10 [INFO] User column selection: ''
+2025-08-23 18:59:16 [INFO] Exporting to CSV at 'test.csv'
+2025-08-23 18:59:27 [INFO] Script finished.
