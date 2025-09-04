@@ -1,4 +1,6 @@
-# Planner Task Puller Script Documentation
+---
+title: Planner Task Puller Script Documentation
+---
 
 ## Overview
 
@@ -12,6 +14,8 @@ For CSV and Markdown exports, the script allows you to interactively select whic
 
 * **Multiple Filtering Options:** Pull tasks by assignment, date range, completion status, or specific bucket.
 * **Multiple Export Formats:** Export your data to CSV, JSON, or a report-ready Markdown table.
+* **CSV to Markdown Utility:** A dedicated tool to convert existing CSV files into Markdown tables, with an easy-to-use file picker for local files.
+* **Automatic Link Conversion:** For Markdown exports, automatically convert raw GitHub pull request URLs into formatted, clickable Markdown hyperlinks.
 * **Customizable Columns:** For CSV and Markdown exports, you can choose exactly which columns to include.
 * **Plan Management:** An interactive utility to add, delete, and view your saved Planner plans.
 * **Robust Logging:** Creates a detailed log file in the `./logs` directory, with a configurable log level for easier debugging.
@@ -94,7 +98,7 @@ This method is more reliable but more complex.
 
 1. Open a **PowerShell 7** terminal (`pwsh.exe`).
 2. Navigate to the directory where the script is located.
-3. Execute the script by running: `./Planner_pull.ps1`
+3. Execute the script by running: `.\Planner_pull.ps1`
 4. Follow the on-screen prompts.
 
 ### Main Menu
@@ -108,6 +112,7 @@ The script presents a main menu with the following options:
     4. Pull tasks from a specific bucket
     5. Pull tasks by completion status (Not Started, In Progress, Completed)
 * **6. Manage saved plans:** Enter a utility menu to add or delete plans from your `config.json` file.
+* **7. Convert CSV to Markdown:** A tool to convert a CSV file to a Markdown table.
 * **Q. Quit:** Exit the script.
 
 ### Data Export Workflow
@@ -118,14 +123,26 @@ After you select a data pulling option (1-5) and retrieve the tasks:
 2. **Choose Export Format:** You will be prompted to choose an export format: **CSV**, **JSON**, or **Markdown**.
 3. **Select Columns (for CSV/Markdown):** If you choose CSV or Markdown, a menu will appear listing all available data columns. You can then enter the numbers of the columns you wish to keep in your report (e.g., `1,3,5`).
 4. **Enter Filename:** Provide a name for the output file.
+5. **Convert Links (for Markdown):** If you chose Markdown, you will be asked if you want to convert GitHub pull request links into clickable Markdown hyperlinks.
+
+### CSV to Markdown Conversion
+
+This utility provides a convenient way to create a Markdown report from a CSV file. This is useful if you prefer to export your data to CSV, make manual edits, and then generate a final Markdown table.
+
+When you select this option from the main menu:
+
+1.  **File Selection:** The script will first look for any `.csv` files in its current directory and display them as a numbered list. You can simply select a number to choose your file.
+2.  **Manual Path:** If your file is in a different location, you can choose the option to enter the file path manually.
+3.  **Output:** You will be prompted to provide a name for the new Markdown file.
+4.  **Link Conversion:** After the Markdown file is created, the script will ask if you want to perform the final step of converting any GitHub URLs into clickable hyperlinks.
 
 ## How it Works
 
 1. **Pre-flight Checks:** The script first checks for two things:
     * That it is being run in **PowerShell 7 or higher**.
     * That the `Microsoft.Graph` module is installed.
-2. **User Selection:** It prompts the user to choose a filtering method from the main menu.
-3. **Authentication:** It connects to the Microsoft Graph API using a device code authentication flow.
+2. **User Selection:** It prompts the user to choose an action from the main menu. This can be a data pull, plan management, or a utility like the CSV to Markdown converter.
+3. **Authentication:** For data pulling and plan management, it connects to the Microsoft Graph API using a device code authentication flow.
 4. **Plan ID Configuration (`config.json`):**
     * The script reads the `config.json` file to find any saved plans. This file is created automatically.
     * If saved plans are found, it displays them in a menu for the user to select.
@@ -137,6 +154,7 @@ After you select a data pulling option (1-5) and retrieve the tasks:
 6. **Output:**
     * The script prompts the user for an export format and an output filename.
     * For CSV and Markdown, it allows the user to select specific columns.
+    * If the user exports to Markdown, it offers an additional step to automatically format any found GitHub PR links into proper Markdown hyperlinks.
     * It compiles all the processed data and exports it to the specified file.
 7. **Logging:** All operations, user choices, and errors are logged to a file in the `./logs` directory for easy debugging.
 
@@ -148,7 +166,7 @@ The following data columns are available for export:
 * **Role:** The role of the user for that task (Main Contributor, Reviewer, or blank).
 * **Task:** The title of the Planner task.
 * **Bucket:** The name of the bucket the task belongs to.
-* **Attachments:** A semicolon-separated list of GitHub URLs found in the task's references.
+* **Attachments:** A semicolon-separated list of GitHub URLs found in the task's references. In Markdown exports, these can be automatically converted to clickable hyperlinks (e.g., `[PR#123](...)`).
 * **Status:** The completion status of the task (Not Started, In Progress, or Completed).
 
 **Date of Creation:** 22/08/2025

@@ -204,7 +204,7 @@ function Save-Configurations {
     }
 }
 
-function Manage-Configurations {
+function Set-Configurations {
     param ([string]$ConfigPath)
     Write-Log -Level INFO -Message "Entering plan management utility."
 
@@ -230,6 +230,7 @@ function Manage-Configurations {
 
         switch ($choice.ToUpper()) {
             'A' {
+                Write-Host "`nNeed help finding the id? Look no further https://youtu.be/KdOdRppqxCk"
                 $newPlanId = Read-Host -Prompt "Please enter the new Plan ID"
                 $planName = Read-Host -Prompt "Please enter a name for this plan"
 
@@ -294,6 +295,7 @@ function Select-PlannerPlan {
 
     if ($savedPlans.Count -gt 0) {
         Write-Host "Please choose a saved Plan or enter a new one:"
+        Write-Host "`nNeed help finding the id? Look no further https://youtu.be/KdOdRppqxCk"
         for ($i = 0; $i -lt $savedPlans.Count; $i++) {
             Write-Host ("{0}. {1}" -f ($i + 1), $savedPlans[$i].name)
         }
@@ -436,8 +438,8 @@ function Get-PlannerTasks {
     param (
         [string]$PlanId,
         [string]$Selection,
-        [datetime]$StartDate,
-        [datetime]$EndDate,
+        $StartDate,
+        $EndDate,
         [string]$BucketId,
         [string]$Status
     )
@@ -622,6 +624,12 @@ function Export-Data {
                 $markdownTable = ConvertTo-MarkdownTable -Data $reportData
                 Set-Content -Path $outputFile -Value $markdownTable
                 Write-Host "Tasks exported successfully to $outputFile"
+
+                $convertChoice = Read-Host -Prompt "Convert GitHub PR links to clickable Markdown hyperlinks? (y/n)"
+                if ($convertChoice.ToUpper() -eq 'Y') {
+                    Convert-GitHubLinksToMarkdown -Path $outputFile
+                    Write-Host "GitHub links have been converted in $outputFile"
+                }
             }
             catch {
                 Write-Log -Level "ERROR" -Message "Failed to export Markdown to '$outputFile': $_"
@@ -632,6 +640,117 @@ function Export-Data {
             Write-Log -Level WARN -Message "User entered invalid export format: $formatChoice"
             Write-Host "Invalid format selection. Export cancelled."
         }
+    }
+}
+
+function Convert-GitHubLinksToMarkdown {
+    param (
+        [string]$Path
+    )
+    Write-Log -Level INFO -Message "Starting GitHub link conversion for '$Path'."
+    try {
+        $content = Get-Content -Path $Path -Raw
+        
+        # Regex to find GitHub pull request URLs.
+        # It captures the whole URL and then the PR number.
+        $regex = '(https?://github\.com/[^/|]+/[^/|]+/pull/(\d+))'
+        
+        $newContent = $content
+        $foundMatches = $content | Select-String -Pattern $regex -AllMatches
+        
+        if ($foundMatches) {
+            # Get unique matches to avoid processing the same URL multiple times
+            $uniqueMatches = $foundMatches.Matches | Select-Object -Property Value, @{N='PR';E={$_.Groups[2].Value}} -Unique
+            
+            foreach ($match in $uniqueMatches) {
+                $url = $match.Value
+                $pr = $match.PR
+                $markdownLink = "[PR#$pr]($url)"
+                # Use simple string replacement.
+                $newContent = $newContent.Replace($url, $markdownLink)
+            }
+        }
+        
+        $newContent | Set-Content -Path $Path
+        Write-Log -Level INFO -Message "Finished GitHub link conversion for '$Path'."
+    }
+    catch {
+        Write-Log -Level "ERROR" -Message "Failed to convert GitHub links in '$Path'. Error: $_"
+        Write-Error "An error occurred during link conversion: $_"
+    }
+}
+
+function Convert-CsvToMarkdown {
+    Write-Log -Level INFO -Message "Entering CSV to Markdown conversion utility."
+    
+    $csvPath = $null # Initialize to null
+
+    # Find CSV files in the script's directory ($PSScriptRoot is an automatic variable)
+    $localCsvFiles = Get-ChildItem -Path $PSScriptRoot -Filter *.csv
+
+    if ($localCsvFiles.Count -gt 0) {
+        Write-Host "`nFound CSV files in the current directory:"
+        for ($i = 0; $i -lt $localCsvFiles.Count; $i++) {
+            Write-Host ("{0}. {1}" -f ($i + 1), $localCsvFiles[$i].Name)
+        }
+        Write-Host "M. Enter a file path manually"
+        
+        $choice = Read-Host -Prompt "Select a file or choose manual entry"
+        
+        if ($choice -match "^\d+$" -and [int]$choice -ge 1 -and [int]$choice -le $localCsvFiles.Count) {
+            $selectedIndex = [int]$choice - 1
+            $csvPath = $localCsvFiles[$selectedIndex].FullName
+            Write-Log -Level INFO -Message "User selected local CSV file: $csvPath"
+        }
+        elseif ($choice.ToUpper() -ne 'M') {
+            Write-Host "Invalid selection. Returning to main menu."
+            Write-Log -Level WARN -Message "User made an invalid selection: $choice"
+            return
+        }
+        # If choice is 'M', $csvPath remains null and we fall through to the manual prompt.
+    }
+
+    # If no local files were found, or if user chose manual entry
+    if (-not $csvPath) {
+        $csvPath = Read-Host -Prompt "Please enter the path to the input CSV file"
+    }
+
+    # Validate the final path
+    if (-not (Test-Path -Path $csvPath) -or -not ($csvPath.EndsWith(".csv"))) {
+        Write-Log -Level WARN -Message "Invalid CSV path provided: $csvPath"
+        Write-Host "Error: The specified file does not exist or is not a .csv file."
+        return
+    }
+
+    $markdownPath = Read-Host -Prompt "Please enter the name for the output Markdown file"
+    if (-not ($markdownPath.EndsWith(".md"))) {
+        $markdownPath = "$markdownPath.md"
+    }
+
+    try {
+        $csvData = Import-Csv -Path $csvPath
+        
+        if (-not $csvData) {
+            Write-Log -Level WARN -Message "CSV file '$csvPath' is empty or could not be read."
+            Write-Host "Warning: CSV file is empty or could not be read. No output generated."
+            return
+        }
+
+        $markdownTable = ConvertTo-MarkdownTable -Data $csvData
+        Set-Content -Path $markdownPath -Value $markdownTable
+        Write-Log -Level INFO -Message "Successfully converted '$csvPath' to '$markdownPath'."
+        Write-Host "Successfully converted CSV to Markdown: $markdownPath"
+
+        # Offer to convert GitHub links
+        $convertChoice = Read-Host -Prompt "Convert GitHub PR links to clickable Markdown hyperlinks? (y/n)"
+        if ($convertChoice.ToUpper() -eq 'Y') {
+            Convert-GitHubLinksToMarkdown -Path $markdownPath
+            Write-Host "GitHub links have been converted in $markdownPath"
+        }
+    }
+    catch {
+        Write-Log -Level "ERROR" -Message "Failed to convert CSV '$csvPath' to Markdown. Error: $_"
+        Write-Error "An error occurred during CSV to Markdown conversion: $_"
     }
 }
 
@@ -664,6 +783,7 @@ while ($true) {
     Write-Host "4. Pull tasks from a specific bucket"
     Write-Host "5. Pull tasks by completion status"
     Write-Host "6. Manage saved plans"
+    Write-Host "7. Convert CSV to Markdown"
     Write-Host "Q. Quit"
     $selection = Read-Host -Prompt "Enter your choice"
 
@@ -671,19 +791,28 @@ while ($true) {
         break
     }
 
-    if ($selection -notin '1', '2', '3', '4', '5', '6') {
+    # Handle standalone options first
+    if ($selection -eq '7') {
+        Convert-CsvToMarkdown
+        Read-Host "Press Enter to return to the main menu"
+        continue
+    }
+
+    if ($selection -notin '1', '2', '3', '4', '5', '6', '7') {
         Write-Log -Level WARN -Message "User selected invalid main menu option: $selection"
         Write-Host "Invalid selection."
         continue
     }
 
+    # The rest of the options require Graph connection
     Connect-ToGraph
 
     if ($selection -eq '6') {
-        Manage-Configurations -ConfigPath $ConfigPath
+        Set-Configurations -ConfigPath $ConfigPath
         continue
     }
 
+    # The rest of the options require a Plan ID
     $planId = Select-PlannerPlan -ConfigPath $ConfigPath
     if (-not $planId) { continue }
 
@@ -701,7 +830,7 @@ while ($true) {
             Write-Log -Level INFO -Message "Date filter selected. Start: $startDate, End: $endDate"
         }
         catch {
-            Write-Log -Level WARN -Message "User entered invalid date format."
+            Write-Log -Level WARN -Message "User entered invalid date format $startDateStr and $endDateStr."
             Write-Host "Invalid date format. Please use YYYY-MM-DD."
             continue
         }
