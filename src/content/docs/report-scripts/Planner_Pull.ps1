@@ -653,7 +653,7 @@ function Convert-GitHubLinksToMarkdown {
         
         # Regex to find GitHub pull request URLs.
         # It captures the whole URL and then the PR number.
-        $regex = '(https?://github\.com/[^/|]+/[^/|]+/pull/(\d+))'
+        $regex = '(https?://github\.com/[^/|]+/[^/|]+/pull/(\d+)[^|; ]*)'
         
         $newContent = $content
         $foundMatches = $content | Select-String -Pattern $regex -AllMatches
