@@ -1,4 +1,6 @@
-# Swagger API Security Updates
+---
+title:  Swagger API Security updates
+---
 
 ## Overview
 This document outlines the changes made to address potential vulnerabilities related to the Swagger API documentation in the Doubtfire application.
@@ -16,7 +18,7 @@ If this vulnerability is not addressed, unauthorized users could access the Swag
 - **Action Taken:** Added a conditional check in the Swagger initializer to ensure that Swagger is only accessible in development environments.
 
 ### Context for the Decision
-- During testing, I attempted to access Swagger documentation on the production site by manipulating the URL to `https://ontrack.deakin.edu.au/home/api/swagger_doc.json` and `https://ontrack.deakin.edu.au/home/swagger_doc.json`. However, I observed that any such attempts were redirected back to `https://ontrack.deakin.edu.au/home`, indicating that Swagger is not needed in production or there are additional protective meassures not included in the Thothtech vesrion of Ontrack.
+- During testing, I attempted to access Swagger documentation on the production site by manipulating the URL to `https://ontrack.deakin.edu.au/home/api/swagger_doc.json` and `https://ontrack.deakin.edu.au/home/swagger_doc.json`. However, I observed that any such attempts were redirected back to `https://ontrack.deakin.edu.au/home`, indicating that Swagger is not needed in production or there are additional protective measures not included in the Thothtech version of Ontrack.
 
 ## Affected Components
 The following components and files were updated as part of this security enhancement:
