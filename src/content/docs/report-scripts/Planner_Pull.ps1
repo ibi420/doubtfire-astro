@@ -139,10 +139,22 @@ function Connect-ToGraph {
     try {
         $context = Get-MgContext
         if ($context) {
-            Write-Log -Level INFO -Message "Already authenticated as $($context.Account)"
-            Write-Host "Already authenticated as $($context.Account)"
-            return $true
+            try {
+                Write-Log -Level INFO -Message "Already authenticated as $($context.Account). Verifying token..."
+                # Make a lightweight call to check if the token is still valid.
+                Get-MgUser -UserId "me" -ErrorAction Stop -Select Id | Out-Null
+                Write-Log -Level INFO -Message "Token is still valid."
+                Write-Host "Already authenticated as $($context.Account)"
+                return $true
+            }
+            catch {
+                Write-Log -Level WARN -Message "Token validation failed. It might be expired. Attempting to re-authenticate. Error: $_"
+                Write-Host "Your previous session may have expired. Re-authenticating..."
+                Disconnect-MgGraph
+                # Fall-through to re-authenticate
+            }
         }
+
         Connect-MgGraph -Scopes @("Tasks.Read", "Tasks.ReadWrite", "User.ReadBasic.All") -UseDeviceCode -Audience "organizations"
         $context = Get-MgContext
         if (-not $context) {
