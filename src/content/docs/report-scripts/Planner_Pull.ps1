@@ -126,36 +126,46 @@ function Connect-ToGraph {
     Write-Log -Level DEBUG -Message "Entering Connect-ToGraph function."
     Write-Host "Importing Required Microsoft.Graph sub modules..."
     try {
+        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
         Import-Module Microsoft.Graph.Planner -ErrorAction Stop
         Import-Module Microsoft.Graph.Users -ErrorAction Stop
     }
     catch {
         Write-Log -Level "ERROR" -Message "Failed to import required modules: $_"
-        Write-Error "Failed to import required modules. Please ensure Microsoft.Graph is installed correctly."
+        Write-Error "Failed to import required modules. Please ensure Microsoft.Graph is installed correctly and is up to date."
         exit 1
     }
 
     Write-Host "Authenticating to Microsoft Graph..."
     try {
         $context = Get-MgContext
-        if ($context) {
+        if ($context -and $context.AuthContext) {
             try {
-                Write-Log -Level INFO -Message "Already authenticated as $($context.Account). Verifying token..."
-                # Make a lightweight call to check if the token is still valid.
-                Get-MgUser -UserId "me" -ErrorAction Stop -Select Id | Out-Null
-                Write-Log -Level INFO -Message "Token is still valid."
-                Write-Host "Already authenticated as $($context.Account)"
-                return $true
+                # Actively test the token to ensure it's valid, as cached tokens can become stale.
+                Write-Log -Level DEBUG -Message "Existing context found. Verifying token with a test call..."
+                Get-MgUser -UserId "me" -Property "Id" -ErrorAction Stop | Out-Null
+                
+                $tokenExpiry = [datetime]$context.AuthContext.ExpiresOn
+                $timeToExpiry = $tokenExpiry - (Get-Date)
+
+                if ($timeToExpiry.TotalMinutes -gt 5) {
+                    Write-Log -Level INFO -Message "Already authenticated as $($context.Account). Token is valid."
+                    Write-Host "Already authenticated as $($context.Account)"
+                    return $true
+                }
+                else {
+                    Write-Log -Level WARN -Message "Token is expired or expiring soon. Re-authenticating."
+                    Write-Host "Your session is expired or expiring soon. Re-authenticating..."
+                    Disconnect-MgGraph
+                }
             }
             catch {
-                Write-Log -Level WARN -Message "Token validation failed. It might be expired. Attempting to re-authenticate. Error: $_"
-                Write-Host "Your previous session may have expired. Re-authenticating..."
+                Write-Log -Level WARN -Message "Token validation failed or session is invalid. Re-authenticating. Error: $_"
                 Disconnect-MgGraph
-                # Fall-through to re-authenticate
             }
         }
 
-        Connect-MgGraph -Scopes @("Tasks.Read", "Tasks.ReadWrite", "User.ReadBasic.All") -UseDeviceCode -Audience "organizations"
+        Connect-MgGraph -Scopes @("Tasks.Read", "Tasks.ReadWrite", "User.Read", "User.ReadBasic.All") -Audience "organizations"
         $context = Get-MgContext
         if (-not $context) {
             throw "Failed to establish connection"
@@ -493,8 +503,14 @@ function Get-PlannerTasks {
         Write-Log -Level DEBUG -Message "Created lookup for $($buckets.Count) buckets."
     }
     catch {
-        Write-Log -Level "ERROR" -Message "Failed to get tasks or buckets for plan '$PlanId': $_"
-        Write-Error "Failed to get tasks or buckets: $_"
+        $errorMessage = $_.Exception.Message
+        Write-Log -Level "ERROR" -Message "Failed to get tasks or buckets for plan '$PlanId': $errorMessage"
+        if ($errorMessage -like "*DeviceCodeCredential*") {
+            Write-Error "An authentication error occurred while fetching data. This can sometimes be resolved by restarting the script to force re-authentication. Error: $errorMessage"
+        }
+        else {
+            Write-Error "Failed to get tasks or buckets: $errorMessage"
+        }
         exit 1
     }
 
@@ -785,6 +801,9 @@ if (-not (Get-Module -ListAvailable -Name Microsoft.Graph)) {
     exit
 }
 
+#clear the previous connection for better reliability
+Disconnect-MgGraph
+
 Write-Log -Message "Script started."
 
 while ($true) {
@@ -859,7 +878,6 @@ while ($true) {
 
     Read-Host "Press Enter to return to the main menu"
 }
-
 Write-Log -Message "Script finished."
 Write-Host "Script made by Ibitope Fatoki. Github ibi420."
 Write-Host "Exiting."
